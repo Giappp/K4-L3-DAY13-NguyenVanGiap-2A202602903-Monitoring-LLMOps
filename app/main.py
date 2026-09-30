@@ -4,10 +4,11 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from structlog.contextvars import bind_contextvars
 
 from .agent import LabAgent
+from .dashboard import get_dashboard_metrics, render_dashboard_html
 from .incidents import disable, enable, status
 from .logging_config import configure_logging, get_logger
 from .metrics import record_error, snapshot
@@ -46,10 +47,28 @@ async def metrics() -> dict:
     return snapshot()
 
 
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_view(minutes: int = 60) -> HTMLResponse:
+    metrics_data = get_dashboard_metrics(time_range_minutes=minutes)
+    html_content = render_dashboard_html(metrics_data)
+    return HTMLResponse(content=html_content)
+
+
+@app.get("/api/dashboard", response_class=JSONResponse)
+async def dashboard_data(minutes: int = 60) -> JSONResponse:
+    return JSONResponse(get_dashboard_metrics(time_range_minutes=minutes))
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
-    # TODO: Enrich logs with request context (user_id_hash, session_id, feature, model, env)
-    # bind_contextvars(...)
+    # Enrich logs with request context (user_id_hash, session_id, feature, model, env)
+    bind_contextvars(
+        user_id_hash=hash_user_id(body.user_id),
+        session_id=body.session_id,
+        feature=body.feature,
+        model=agent.model,
+        env=os.getenv("APP_ENV", "dev"),
+    )
     
     log.info(
         "request_received",

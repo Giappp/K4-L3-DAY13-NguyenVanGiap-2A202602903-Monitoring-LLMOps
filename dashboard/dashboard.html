@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K4-L3B Day 13 Monitoring & LLMOps Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta http-equiv="refresh" content="30">
+  <style>
+    body { background-color: #0b0f19; color: #f1f5f9; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .panel-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
+    .panel-card:hover { border-color: rgba(255, 255, 255, 0.15); }
+  </style>
+</head>
+<body class="p-6 min-h-screen">
+  <!-- Top Navigation & Header -->
+  <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold tracking-tight text-white">K4-L3B Day 13 Monitoring &amp; LLMOps</h1>
+        <span class="px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-mono font-medium">LIVE RUNTIME</span>
+      </div>
+      <p class="text-sm text-slate-400 mt-1">Source: <code class="text-indigo-300 font-mono">data/logs.jsonl</code> | Contract: <code class="text-slate-300 font-mono">config/dashboard.yaml</code></p>
+    </div>
+    <div class="flex items-center gap-4 text-sm">
+      <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60 flex items-center gap-2">
+        <span class="text-slate-400">Time Range:</span>
+        <span class="font-semibold text-white">Last 60 Minutes</span>
+      </div>
+      <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-400">Auto-refresh:</span>
+        <span class="font-mono text-emerald-400 font-medium">30s</span>
+      </div>
+      <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-1.5 rounded-lg transition-colors shadow-sm">
+        Refresh Now
+      </button>
+    </div>
+  </header>
+
+  <!-- Main 6 Panels Grid -->
+  <main class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+    <!-- PANEL 1: Latency -->
+    <div class="panel-card p-5 flex flex-col justify-between shadow-xl">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Panel 1 &bull; ID: latency</span>
+            <h2 class="text-lg font-bold text-white">Latency percentiles and TTFT</h2>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">PASS</span>
+        </div>
+        <div class="grid grid-cols-4 gap-2 my-3 text-center">
+          <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400 font-medium">P50</div>
+            <div class="text-lg font-bold text-white font-mono mt-0.5">152.0<span class="text-xs text-slate-400 ml-0.5">ms</span></div>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400 font-medium">P95</div>
+            <div class="text-lg font-bold text-indigo-400 font-mono mt-0.5">2652.0<span class="text-xs text-slate-400 ml-0.5">ms</span></div>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400 font-medium">P99</div>
+            <div class="text-lg font-bold text-amber-400 font-mono mt-0.5">2652.0<span class="text-xs text-slate-400 ml-0.5">ms</span></div>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400 font-medium">TTFT P95</div>
+            <div class="text-lg font-bold text-emerald-400 font-mono mt-0.5">50.0<span class="text-xs text-slate-400 ml-0.5">ms</span></div>
+          </div>
+        </div>
+        <div class="h-40 w-full mt-2">
+          <canvas id="chart-latency"></canvas>
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Unit: <strong class="text-slate-300">ms</strong></span>
+        <span>Threshold: <strong class="text-rose-400">P95 &le; 3000 ms</strong></span>
+      </div>
+    </div>
+
+    <!-- PANEL 2: Traffic -->
+    <div class="panel-card p-5 flex flex-col justify-between shadow-xl">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Panel 2 &bull; ID: traffic</span>
+            <h2 class="text-lg font-bold text-white">Request traffic</h2>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">PASS</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 my-3">
+          <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400">Total Requests</div>
+            <div class="text-2xl font-bold text-white font-mono mt-1">35</div>
+          </div>
+          <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400">Rate / Minute</div>
+            <div class="text-2xl font-bold text-indigo-400 font-mono mt-1">7.0 <span class="text-xs text-slate-400">rpm</span></div>
+          </div>
+        </div>
+        <div class="h-40 w-full mt-2">
+          <canvas id="chart-traffic"></canvas>
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Unit: <strong class="text-slate-300">requests_per_minute</strong></span>
+        <span>Threshold: <strong class="text-emerald-400">rate &ge; 1.0 rpm</strong></span>
+      </div>
+    </div>
+
+    <!-- PANEL 3: Errors -->
+    <div class="panel-card p-5 flex flex-col justify-between shadow-xl">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Panel 3 &bull; ID: errors</span>
+            <h2 class="text-lg font-bold text-white">Error rate and retrieval success</h2>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">PASS</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 my-3">
+          <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400">API Error Rate</div>
+            <div class="text-2xl font-bold text-emerald-400 font-mono mt-1">0.0%</div>
+          </div>
+          <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400">Retrieval Success</div>
+            <div class="text-2xl font-bold text-cyan-400 font-mono mt-1">100.0%</div>
+          </div>
+        </div>
+        <div class="h-40 w-full mt-2 flex flex-col justify-center bg-slate-900/40 p-3 rounded-lg border border-slate-800/60">
+          <div class="text-xs text-slate-400 font-medium mb-2">Error Breakdown:</div>
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex justify-between items-center bg-slate-800/50 px-2 py-1 rounded"><span>None</span><span class="text-slate-300 font-bold">0</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Unit: <strong class="text-slate-300">percent</strong></span>
+        <span>Threshold: <strong class="text-rose-400">Error &le; 2.0%</strong> &bull; <strong class="text-cyan-400">Retrieval &ge; 90%</strong></span>
+      </div>
+    </div>
+
+    <!-- PANEL 4: Cost -->
+    <div class="panel-card p-5 flex flex-col justify-between shadow-xl">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Panel 4 &bull; ID: cost</span>
+            <h2 class="text-lg font-bold text-white">Cost over time</h2>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">PASS</span>
+        </div>
+        <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 my-3">
+          <div class="text-xs text-slate-400">Cumulative Cost (Window)</div>
+          <div class="text-2xl font-bold text-amber-400 font-mono mt-1">$0.0739 <span class="text-xs text-slate-400">USD</span></div>
+        </div>
+        <div class="h-40 w-full mt-2">
+          <canvas id="chart-cost"></canvas>
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Unit: <strong class="text-slate-300">usd</strong></span>
+        <span>Threshold: <strong class="text-amber-400">Total &le; $2.5 USD</strong></span>
+      </div>
+    </div>
+
+    <!-- PANEL 5: Tokens -->
+    <div class="panel-card p-5 flex flex-col justify-between shadow-xl">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Panel 5 &bull; ID: tokens</span>
+            <h2 class="text-lg font-bold text-white">Input and output tokens</h2>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">PASS</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 my-3 text-center">
+          <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400 font-medium">Input</div>
+            <div class="text-base font-bold text-blue-400 font-mono mt-0.5">1,621</div>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400 font-medium">Output</div>
+            <div class="text-base font-bold text-purple-400 font-mono mt-0.5">4,601</div>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-400 font-medium">Total</div>
+            <div class="text-base font-bold text-white font-mono mt-0.5">6,222</div>
+          </div>
+        </div>
+        <div class="h-40 w-full mt-2">
+          <canvas id="chart-tokens"></canvas>
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Unit: <strong class="text-slate-300">tokens</strong></span>
+        <span>Threshold: <strong class="text-purple-400">Total &le; 50,000</strong></span>
+      </div>
+    </div>
+
+    <!-- PANEL 6: Quality -->
+    <div class="panel-card p-5 flex flex-col justify-between shadow-xl">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Panel 6 &bull; ID: quality</span>
+            <h2 class="text-lg font-bold text-white">Quality proxy</h2>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">PASS</span>
+        </div>
+        <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 my-3">
+          <div class="text-xs text-slate-400">Average Quality Score</div>
+          <div class="text-2xl font-bold text-emerald-400 font-mono mt-1">0.86 <span class="text-xs text-slate-400">/ 1.00</span></div>
+        </div>
+        <div class="h-40 w-full mt-2">
+          <canvas id="chart-quality"></canvas>
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Unit: <strong class="text-slate-300">score_0_to_1</strong></span>
+        <span>Threshold: <strong class="text-emerald-400">mean &ge; 0.75</strong></span>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="max-w-7xl mx-auto mt-8 text-center text-xs text-slate-500">
+    Last Refreshed: 2026-09-30 10:03:20 UTC &bull; K4-L3B Monitoring &amp; LLMOps
+  </footer>
+
+  <script>
+    const chartDefaults = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false, color: '#334155' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+      }
+    };
+
+    // Latency Chart
+    new Chart(document.getElementById('chart-latency'), {
+      type: 'line',
+      data: {
+        labels: ["10:03:00", "10:03:01", "10:03:01", "10:03:01", "10:03:01", "10:03:01", "10:03:01", "10:03:02", "10:03:02", "10:03:02"],
+        datasets: [
+          {
+            label: 'Latency (ms)',
+            data: [1260, 152, 152, 151, 152, 151, 152, 151, 152, 152],
+            borderColor: '#818cf8',
+            backgroundColor: 'rgba(129, 140, 248, 0.15)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+          },
+          {
+            label: 'SLO Threshold (3000ms)',
+            data: Array(10).fill(3000),
+            borderColor: 'rgba(244, 63, 94, 0.8)',
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            pointRadius: 0
+          }
+        ]
+      },
+      options: chartDefaults
+    });
+
+    // Traffic Chart
+    new Chart(document.getElementById('chart-traffic'), {
+      type: 'bar',
+      data: {
+        labels: ["09:49", "09:50", "10:01", "10:02", "10:03"],
+        datasets: [{
+          label: 'Requests',
+          data: [10, 10, 5, 1, 9],
+          backgroundColor: '#38bdf8',
+          borderRadius: 4
+        }]
+      },
+      options: chartDefaults
+    });
+
+    // Cost Chart
+    new Chart(document.getElementById('chart-cost'), {
+      type: 'line',
+      data: {
+        labels: ["09:49", "09:50", "10:01", "10:03"],
+        datasets: [{
+          label: 'Cost ($)',
+          data: [0.0226, 0.0216, 0.0091, 0.0205],
+          borderColor: '#fbbf24',
+          backgroundColor: 'rgba(251, 191, 36, 0.15)',
+          borderWidth: 2,
+          fill: true
+        }]
+      },
+      options: chartDefaults
+    });
+
+    // Tokens Bar Chart
+    new Chart(document.getElementById('chart-tokens'), {
+      type: 'bar',
+      data: {
+        labels: ['Input Tokens', 'Output Tokens'],
+        datasets: [{
+          data: [1621, 4601],
+          backgroundColor: ['#60a5fa', '#c084fc'],
+          borderRadius: 6
+        }]
+      },
+      options: chartDefaults
+    });
+
+    // Quality Chart
+    new Chart(document.getElementById('chart-quality'), {
+      type: 'line',
+      data: {
+        labels: ["10:03:00", "10:03:01", "10:03:01", "10:03:01", "10:03:01", "10:03:01", "10:03:01", "10:03:02", "10:03:02", "10:03:02"],
+        datasets: [
+          {
+            label: 'Quality Score',
+            data: [0.9, 0.8, 0.8, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9],
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52, 211, 153, 0.15)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+          },
+          {
+            label: 'Quality Target (0.75)',
+            data: Array(10).fill(0.75),
+            borderColor: 'rgba(251, 191, 36, 0.8)',
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            pointRadius: 0
+          }
+        ]
+      },
+      options: {
+        ...chartDefaults,
+        scales: {
+          ...chartDefaults.scales,
+          y: { ...chartDefaults.scales.y, min: 0, max: 1 }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
